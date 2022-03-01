@@ -1,5 +1,7 @@
 package org.paradisehell.one
 
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import java.lang.reflect.*
 import kotlin.coroutines.Continuation
@@ -77,14 +79,17 @@ class FakeSuccessContinuationWrapper<T>(
     override val context: CoroutineContext = original.context
 
     override fun resumeWith(result: Result<T>) {
-        result.onSuccess {
-            // when it's success, resume with original Continuation
-            original.resumeWith(result)
-        }.onFailure {
-            // when it's failure, resume a wrapper success which contain
-            // failure, so we don't need to add try catch
-            val fakeSuccessResult = throwableResolver.resolve(it)
-            original.resumeWith(Result.success(fakeSuccessResult))
+        runBlocking(context) {
+            result.onSuccess {
+                // when it's success, resume with original Continuation
+                original.resumeWith(result)
+            }.onFailure {
+                // when it's failure, resume a wrapper success which contain
+                // failure, so we don't need to add try catch
+                val fakeSuccessResult = throwableResolver.resolve(it)
+                original.resumeWith(Result.success(fakeSuccessResult))
+            }
+
         }
     }
 }

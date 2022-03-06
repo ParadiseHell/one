@@ -1,7 +1,6 @@
 package org.paradisehell.one
 
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import java.lang.reflect.*
 import kotlin.coroutines.Continuation
@@ -89,7 +88,6 @@ class FakeSuccessContinuationWrapper<T>(
                 val fakeSuccessResult = throwableResolver.resolve(it)
                 original.resumeWith(Result.success(fakeSuccessResult))
             }
-
         }
     }
 }

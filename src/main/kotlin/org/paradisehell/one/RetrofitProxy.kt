@@ -1,10 +1,10 @@
 package org.paradisehell.one
 
-import kotlinx.coroutines.runBlocking
 import retrofit2.Retrofit
 import java.lang.reflect.*
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.intrinsics.intercepted
 
 /**
  * Proxy the interface created by [Retrofit.create] again. If the method invoked is a suspend
@@ -26,7 +26,7 @@ inline fun <reified T> T.proxyRetrofit(): T {
                 args.updateAt(
                     args.lastIndex,
                     FakeSuccessContinuationWrapper(
-                        args.last() as Continuation<Any>,
+                        (args.last() as Continuation<Any>).intercepted(),
                         resolver as ThrowableResolver<Any>
                     )
                 )
@@ -78,16 +78,14 @@ class FakeSuccessContinuationWrapper<T>(
     override val context: CoroutineContext = original.context
 
     override fun resumeWith(result: Result<T>) {
-        runBlocking(context) {
-            result.onSuccess {
-                // when it's success, resume with original Continuation
-                original.resumeWith(result)
-            }.onFailure {
-                // when it's failure, resume a wrapper success which contain
-                // failure, so we don't need to add try catch
-                val fakeSuccessResult = throwableResolver.resolve(it)
-                original.resumeWith(Result.success(fakeSuccessResult))
-            }
+        result.onSuccess {
+            // when it's success, resume with original Continuation
+            original.resumeWith(result)
+        }.onFailure {
+            // when it's failure, resume a wrapper success which contain
+            // failure, so we don't need to add try catch
+            val fakeSuccessResult = throwableResolver.resolve(it)
+            original.resumeWith(Result.success(fakeSuccessResult))
         }
     }
 }
